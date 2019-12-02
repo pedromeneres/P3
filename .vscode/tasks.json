@@ -1,0 +1,48 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Compile Server",
+			"command": "make",
+			"options": {
+				"cwd": "Server"
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"type": "shell",
+			"label": "Clean Server",
+			"command": "make",
+			"args": [
+				"clean"
+			],
+			"options": {
+				"cwd": "Server"
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"type": "shell",
+			"label": "Compile Client",
+			"command": "gcc -g -o client ./Client.c",
+			"options": {
+				"cwd": "Client"
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"label": "Compile Server+Client",
+			"dependsOn": [
+				"Compile Server",
+				"Compile Client"
+			]
+		}
+	]
+}
