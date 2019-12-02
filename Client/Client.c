@@ -10,7 +10,7 @@
 #define OK 0
 #define NO_INPUT 1
 #define TOO_LONG 2
-// Cenas
+
 /* Global variables */
 int sockfd, servlen;
 struct sockaddr_un serv_addr;
@@ -103,24 +103,13 @@ static int getLine(char *prmpt, char *buff, size_t sz)
 
 void createConnection()
 {
-	/*
-	int rc;
-	fflush(stdin);
-	rc = getLine("Insert socket address: ", socketAddress, sizeof(socketAddress));
-	if (rc == NO_INPUT)
-	{
-		// Extra NL since my system doesn't output that on EOF.
-		printf("\nNo input\n");
-		return;
-	}
+	char *socketName;
 
-	if (rc == TOO_LONG)
-	{
-		printf("Input too long [%s]\n", socketAddress);
-		return;
-	}
-	*/
-	int res = tfsMount("socket"); // Replace by user input
+	// Ask for socket name
+	printf("Insert socket name: ");
+	scanf("%s", socketName);
+	
+	int res = tfsMount(socketName); // Replace by user input
 	if (res != 0)
 		printf("Could not connect to server: %d\n", res);
 	else
@@ -132,8 +121,10 @@ void destroyConnection()
 	int res = tfsUnmount();
 	if (res != 0)
 		printf("The client was already disconnected from the server: %d\n", res);
-	else
+	else {
+		fileDescriptor = -1;
 		printf("The client disconnected from the server!\n");
+	}	
 }
 
 void createFile() {
@@ -165,8 +156,13 @@ void createFile() {
 
 	// Call API functions
 	int res = tfsCreate(filename, userPermissions, otherPermissions);
-	if(res < 0)
-		printf("Could not write to socket\n");
+
+	// Process results
+	if (res == 0) {
+		printf("File created successfully!\n");
+	} else if (res == TECNICOFS_ERROR_FILE_ALREADY_EXISTS) {
+		printf("File already exists!\n");
+	}
 }
 
 void deleteFile() {
@@ -176,10 +172,19 @@ void deleteFile() {
 	// Ask for filename
 	printf("Filename to delete: ");
 	scanf("%s", filename);
+
 	// Call API function
 	int res = tfsDelete(filename);
 	if(res < 0)
 		printf("Could not write to socket\n");
+	else{
+		if (res == 0) {
+			printf("File sucessfully deleted\n");
+		}
+		else if(res == TECNICOFS_ERROR_FILE_NOT_FOUND){
+			printf("Filename doesn't exist!\n");
+		}
+	}
 }
 
 void renameFile() {
@@ -199,28 +204,54 @@ void renameFile() {
 	int res = tfsRename(Oldfilename, Newfilename);
 	if(res < 0)
 		printf("Could not write to socket\n");
+	else{
+		if (res == 0)
+			printf("New name given to file!\n");
+		else if(res == TECNICOFS_ERROR_FILE_ALREADY_EXISTS)
+			printf("File already exists!\n");
+		else if(res == TECNICOFS_ERROR_FILE_NOT_FOUND)
+			printf("File does not exists!\n");
+	}
 }
 
 void openFile() {
 
-	char *filename, *permissions;
+	char *filename;
+	int permissions;
+	permission userPermissions;
 
 	// Ask for file name
-	printf("Filename to open: ");
+	printf("Filename to open: \n");
 	scanf("%s", filename);
 	// Ask for mode (read, write, both)
-	printf("Open in mode...(R-read, W-write, RW-both: ");
-	scanf("%s", permissions);
-
+	do {
+		printf("Open in mode..: \n");
+		scanf("%d", &permissions);
+		if(permissions < 0 || permissions > 3)
+			printf("Wrong permissions. 0 - No permissions, 1 - Read, 2 - Write, 3 - R/W\n");
+	} while(permissions < 0 || permissions > 3);
+	userPermissions = permissions;
 
 	// Call API function
 	int res = 0;//tfsOpen(filename, permissions);
 	fileDescriptor = res;
 	if(res < 0)
 		printf("Could not write to socket\n");
+	else{
+		if(res == 0)
+			printf("File sucessfully opened!\n");
+		else if(res == TECNICOFS_ERROR_PERMISSION_DENIED)
+			printf("Don't have permissions to open this file!\n");
+		else if(res == TECNICOFS_ERROR_MAXED_OPEN_FILES)
+			printf("Maximum number of files reached!\n");
+		else if(res == TECNICOFS_ERROR_FILE_IS_OPEN)
+		printf("File is already open!\n");
+
+	}
 }
 
 void closeFile() {
+
 	// Check if we have an opened file
 	if(fileDescriptor == -1) {
 		printf("There are no opened files.\n");
@@ -231,24 +262,35 @@ void closeFile() {
 	int res = tfsClose(fileDescriptor);
 	if(res < 0)
 		printf("Could not write to socket\n");
-	else
-		fileDescriptor = -1;
+	else {
+		if(res == 0){
+			printf("File successfully closed!\n");
+		} else  if(res == TECNICOFS_ERROR_FILE_NOT_FOUND) {
+			printf("File not found!\n");
+		} else if (res == TECNICOFS_ERROR_FILE_NOT_OPEN) {
+			printf("File not open!\n");
+		}
+	}
 }
 
 void readFile() {
+	
 	// Check if we have an opened file
 	if(fileDescriptor == -1) {
 		printf("There are no opened files.\n");
 		return;
 	}
-
 	// Create write buffer
 	char buffer[MAXLINE];
-
 	// Call API function
 	int res = tfsRead(fileDescriptor, buffer, MAXLINE);
 	if(res <= 0)
 		printf("Could not write to socket\n");
+	else{
+		if(res == 0) {
+		printf("%s", buffer);
+		}
+	}
 }
 
 void writeFile() {

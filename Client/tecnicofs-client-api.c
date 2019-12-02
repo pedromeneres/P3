@@ -41,13 +41,28 @@ int tfsCreate(char *filename, permission ownerPermissions, permission othersPerm
 	strcpy(command, "c ");
 	strcat(command, filename);
 	strcat(command, " ");
-	strcat(command, "3"); // Owner permissions
-	strcat(command, "2"); // Other permissions
+	strcat(command, atoi(ownerPermissions)); // Owner permissions
+	strcat(command, atoi(othersPermissions)); // Other permissions
 
 	// Send command to socket/server
-	return write(socketId, command, MAXLINE);
+	if(write(socketId, command, strlen(command)) < 0) {
+		printf("Could not write to socket\n");
+		return;
+	}	
+
+	// Clean command
+	memset(command, 0 , sizeof(command));
 
 	// Get response from the socket/server and return it
+	int readBytes = read(socketId, command, MAXLINE);
+	if(readBytes < 0){
+		printf("Could not read from the socket\n");
+		return;
+	}
+	
+	char c;
+	sscanf(command, "%c", c);
+	return c - '0'; // Convert char to integer
 	
 }
 
@@ -58,9 +73,25 @@ int tfsDelete(char *filename) {
 	strcat(command, filename);
 
 	// Send command to socket/server
-	return write(socketId, command, MAXLINE);
+	if(write(socketId, command, strlen(command)) < 0) {
+		printf("Could not write to socket\n");
+		return;
+	}	
+
+	// Clean command
+	memset(command, 0 , sizeof(command));
 
 	// Get response from the socket/server and return it
+	int readBytes = read(socketId, command, MAXLINE);
+	if(readBytes < 0){
+		printf("Could not read from the socket\n");
+		return;
+	}
+
+	// Prepare response
+	char c;
+	sscanf(command, "%c", c);
+	return c - '0'; // Convert char to integer
 }
 
 int tfsRename(char *filenameOld, char *filenameNew) {
@@ -72,9 +103,25 @@ int tfsRename(char *filenameOld, char *filenameNew) {
 	strcat(command, filenameNew);
 
 	// Send command to socket/server
-	return write(socketId, command, MAXLINE);
+	if(write(socketId, command, strlen(command)) < 0) {
+		printf("Could not write to socket\n");
+		return;
+	}	
+
+	// Clean command
+	memset(command, 0 , sizeof(command));
 
 	// Get response from the socket/server and return it
+	int readBytes = read(socketId, command, MAXLINE);
+	if(readBytes < 0){
+		printf("Could not read from the socket\n");
+		return;
+	}
+
+	// Prepare response
+	char c;
+	sscanf(command, "%c", c);
+	return c - '0'; // Convert char to integer
 }
 
 int tfsOpen(char *filename, permission mode) {
@@ -83,59 +130,114 @@ int tfsOpen(char *filename, permission mode) {
 	strcpy(command, "o ");
 	strcat(command, filename);
 	strcat(command, " ");
-	strcat(command, "3");
+	strcat(command, atoi(mode));
 
 	// Send command to socket/server
-	return write(socketId, command, MAXLINE);
+	if(write(socketId, command, strlen(command)) < 0) {
+		printf("Could not write to socket\n");
+		return;
+	}	
+
+	// Clean command
+	memset(command, 0 , sizeof(command));
 
 	// Get response from the socket/server and return it
-	int n = read(socketId, command, MAXLINE); // Lê a responsta do servidor
-	int res = atoi(command);
-	if(res == TECNICOFS_ERROR_FILE_NOT_FOUND) {
-		printf("File not found.\n");
-	} else if (res == TECNICOFS_ERROR_PERMISSION_DENIED) {
-		printf("Permission denied.\n");
-	} else if (res == TECNICOFS_ERROR_MAXED_OPEN_FILES) {
-		printf("Cannot open any more files.\n");
+	int readBytes = read(socketId, command, MAXLINE);
+	if(readBytes < 0){
+		printf("Could not read from the socket\n");
+		return;
 	}
+
+	// Prepare response
+	char c;
+	sscanf(command, "%c", c);
+	return c - '0'; // Convert char to integer
+
 }
 
 int tfsClose(int fd) {
 	// Create command string
 	char command[MAXLINE];
 	strcpy(command, "x ");
-	strcat(command, "5"); // Convert fd to string/char
+	strcat(command, atoi(fd)); // Convert fd to string/char
 
 	// Send command to socket/server
-	return write(socketId, command, MAXLINE);
+	if(write(socketId, command, strlen(command)) < 0) {
+		printf("Could not write to socket\n");
+		return;
+	}	
+
+	// Clean command
+	memset(command, 0 , sizeof(command));
 
 	// Get response from the socket/server and return it
+	int readBytes = read(socketId, command, MAXLINE);
+	if(readBytes < 0){
+		printf("Could not read from the socket\n");
+		return;
+	}
+
+	// Prepare response
+	char c;
+	sscanf(command, "%c", c);
+	return c - '0'; // Convert char to integer
 }
 
 int tfsRead(int fd, char *buffer, int len) {
 	// Create command string
 	char command[MAXLINE];
 	strcpy(command, "l ");
-	strcat(command, "5 "); // Convert fd to string
-	strcat(command, "512"); // Convert len to string
+	strcat(command, atoi(fd)); // Convert fd to string
+	strcat(command, buffer);
+	strcat(command, atoi(len)); // Convert len to string
 
 	// Send command to socket/server
-	return write(socketId, command, MAXLINE);
+	if(write(socketId, command, strlen(command)) < 0) {
+		printf("Could not write to socket\n");
+		return;
+	}
+
+	// Clean command
+	memset(command, 0 , sizeof(command));
 
 	// Get response from the socket/server and copy it to the buffer
+	int readBytes = read(socketId, buffer, len);
+	if(readBytes == 0) {
+		printf("Could not read from the socket\n");
+		return;
+	}	
 
 	// Return the number of characters received
+	return readBytes;
 }
 
 int tfsWrite(int fd, char *buffer, int len) {
 	// Create command string
 	char command[MAXLINE];
 	strcpy(command, "w ");
-	strcat(command, "5 "); // Convert fd to string
+	strcat(command, atoi(fd)); // Convert fd to string
+	strcat(command, " ");
 	strcat(command, buffer); // Convert len to string
+	strcat(command, "\0");
 
 	// Send command to socket/server
-	return write(socketId, command, MAXLINE);
+	if(write(socketId, command, strlen(command)) < 0) {
+		printf("Could not write to socket\n");
+		return;
+	}	
+
+	// Clean command
+	memset(command, 0 , sizeof(command));
 
 	// Get response from the socket/server and return it
+	int readBytes = read(socketId, command, MAXLINE);
+	if(readBytes < 0){
+		printf("Could not read from the socket\n");
+		return;
+	}
+
+	// Prepare response
+	char c;
+	sscanf(command, "%c", c);
+	return c - '0'; // Convert char to integer
 }
