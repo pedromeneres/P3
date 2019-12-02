@@ -10,7 +10,7 @@
 #define OK 0
 #define NO_INPUT 1
 #define TOO_LONG 2
-
+// Cenas
 /* Global variables */
 int sockfd, servlen;
 struct sockaddr_un serv_addr;
